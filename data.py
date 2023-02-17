@@ -49,7 +49,7 @@ class TripletFaceDataset(Dataset):
         super().__init__()
 
         self.person_paths = get_person_image_paths(path)
-        self.persons = self.person_paths.keys()
+        self.persons = list(self.person_paths.keys())  # changed, so we can sample from this
         self.persons_positive = get_persons_with_at_least_k_images(self.person_paths, 2)
 
         self.transform = transforms.Compose([
@@ -65,8 +65,19 @@ class TripletFaceDataset(Dataset):
         Returns:
             tuple[Path]: A triplet of paths (anchor, positive, negative)
         """
-        # TODO Please implement this function
-        return None, None, None
+        # sample 2 positive paths without replacement
+        person = self.persons_positive[index]
+        anchor, positive = random.sample(self.person_paths[person], k=2)
+
+        # sample a negative person
+        negative_person = random.choice(self.persons)
+
+        # keep sampling as needed until we get a negative person
+        while negative_person == person:
+            negative_person = random.choice(self.persons)
+        negative = random.choice(self.person_paths[negative_person])
+
+        return anchor, positive, negative
 
     def __getitem__(self, index: int):
         """Randomly sample a triplet of image tensors.
@@ -102,12 +113,14 @@ if __name__ == "__main__":
             self.dataset = TripletFaceDataset(args.path_data)
 
         def test_same_shapes(self):
-            a, p, n = self.dataset[0]
+            index = random.randint(0, len(self.dataset) - 1)
+            a, p, n = self.dataset[index]
             self.assertEqual(a.shape, p.shape, 'inconsistent image sizes')
             self.assertEqual(a.shape, n.shape, 'inconsistent image sizes')
 
         def test_triplet_paths(self):
-            a, p, n = self.dataset.get_anchor_positive_negative_paths(0)
+            index = random.randint(0, len(self.dataset) - 1)
+            a, p, n = self.dataset.get_anchor_positive_negative_paths(index)
             self.assertEqual(a.parent.name, p.parent.name)
             self.assertNotEqual(a.parent.name, n.parent.name)
 

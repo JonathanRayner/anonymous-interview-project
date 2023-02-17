@@ -3,8 +3,8 @@
 
 - [x] Understand the data
 - [x] Understand the loss
+- [x] Fix `data.py`
 - [ ] Choose model architecture
-- [ ] Fix `data.py`
 - [ ] Implement basics in `main.py`
 - [ ] Implement basic logging
 - [ ] Investigate problems with the training data
@@ -12,12 +12,16 @@
     - [ ] Do the existing augmentations cause problems?
     - [ ] Do we have enough data?
 - [ ] Documentation + experiments
+- [ ] Plot ROC for FAR? (look at other metrics from the paper)
+- [ ] Scatter plot?
+
 ## Notes
 
 - Some of the training images are already augmented with random rotation, shrinking
 - Actually both the train and test sets have data augmentation
-
-
+- train data: ~12k datapoints, ~5.6k unique people, ~1.5k have more than one person
+- test data: ~1k datapoints, ~750 unique people
+- all data is .jpg, 250 x 250 x 3
 
 ## Instructions
 
