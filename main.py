@@ -14,7 +14,7 @@ class L2Pool(nn.Module):
         super().__init__()
         kwargs["divisor_override"] = 1  # div 1 instead of kernel size
         self.pool = nn.AvgPool2d(*args, **kwargs)
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.sqrt(self.pool(x ** 2))
 
 
@@ -78,7 +78,7 @@ class InceptionBlock(nn.Module):
                                                     padding="same"),
                                           nn.ReLU())
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         pooling_branch = self.pooling_branch(x)
         small_branch = self.small_branch(x)
         medium_branch = self.medium_branch(x)
@@ -120,11 +120,12 @@ class ConvNet(nn.Module):
                                     nn.Flatten(),
                                     nn.Linear(512, 128))
     
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.layers(x)
 
 
-
+# def loss(x: torch.Tensor) -> torch.Tensor:
+    
 
 
 
