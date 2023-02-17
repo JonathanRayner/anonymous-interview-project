@@ -4,6 +4,7 @@ from data import TripletFaceDataset
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 
 
 class L2Pool(nn.Module):
@@ -83,9 +84,6 @@ class InceptionBlock(nn.Module):
         small_branch = self.small_branch(x)
         medium_branch = self.medium_branch(x)
         large_branch = self.large_branch(x)
-
-        print(pooling_branch.shape, small_branch.shape, medium_branch.shape, large_branch.shape)
-        
         return torch.cat([pooling_branch,
                           small_branch,
                           medium_branch,
@@ -124,7 +122,7 @@ class ConvNet(nn.Module):
         return self.layers(x)
 
 
-def triplet_loss(x: torch.Tensor) -> torch.Tensor:
+def triplet_loss(x: torch.Tensor, threshold: float) -> torch.Tensor:
     """
     Triplet loss e.g. eq. 1-4 of https://arxiv.org/pdf/1503.03832.pdf
 
@@ -133,23 +131,45 @@ def triplet_loss(x: torch.Tensor) -> torch.Tensor:
     the next n // 3 to be negative examples
 
     Args:
-        batch of anchor, positive, and negative predictions
+        x: batch of anchor, positive, and negative predictions
+        threshold: determines how aggressively we separate positive and negative examples
         
     Returns:
         batch of loss predictions
     """
-    anchor, positive, negative = torch.chunk(3)
+    anchor, positive, negative = torch.chunk(x, 3)
 
     positive_distance = ((anchor - positive) ** 2).mean(dim=(1))
     negative_distance = ((anchor - negative) ** 2).mean(dim=(1))
 
+    # use all positive pairs in the batch as mentioned in the FaceNet paper
+    positive_loss = positive_distance.mean()
+
+    # selecting hard negative e.g. eq 4 of https://arxiv.org/pdf/1503.03832.pdf
+    # TODO we need to catch when this is an empty tensor
+    negative_loss = negative[positive_distance < negative_distance].mean()
+
+    return positive_loss - negative_loss + threshold
+
     
+def train_loop(dataloader, model, loss_fn, optimizer, threshold):
+    """Citation: directly copied from torch tutorial to save time"""
+    size = len(dataloader.dataset)
+    for batch, tensors in enumerate(dataloader):
 
+        # Compute prediction and loss
+        x = torch.cat(tensors, dim=0)
+        pred = model(x)
+        loss = loss_fn(pred, threshold)
 
-    
+        # Backpropagation
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-
-    
+        if batch % 100 == 0:
+            loss, current = loss.item(), (batch + 1) * len(x)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
 
 
@@ -157,7 +177,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('path_train_set', type=Path)
-    parser.add_argument('path_test_set', type=Path)
+    # parser.add_argument('path_test_set', type=Path)
     args = parser.parse_args()
 
     # Implement execution here
@@ -167,3 +187,18 @@ if __name__ == "__main__":
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     print(count_parameters(model))
+
+    BATCH_SIZE = 32
+    LR = 1e-4
+    THRESHOLD = 1.1  # threshold for classification, to be tuned
+    EPOCHS = 5
+    
+    # TODO: validation set
+    train_dataset = TripletFaceDataset(args.path_train_set)
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+
+    for t in range(EPOCHS):
+        print(f"Epoch {t+1}\n-------------------------------")
+        train_loop(train_dataloader, model, triplet_loss, optimizer, THRESHOLD)
