@@ -124,31 +124,46 @@ class ConvNet(nn.Module):
         return self.layers(x)
 
 
-# def loss(x: torch.Tensor) -> torch.Tensor:
+def triplet_loss(x: torch.Tensor) -> torch.Tensor:
+    """
+    Triplet loss e.g. eq. 1-4 of https://arxiv.org/pdf/1503.03832.pdf
+
+    Expects the first n // 3 batch elements to be anchors,
+    the next n // 3 to be positive examples,
+    the next n // 3 to be negative examples
+
+    Args:
+        batch of anchor, positive, and negative predictions
+        
+    Returns:
+        batch of loss predictions
+    """
+    anchor, positive, negative = torch.chunk(3)
+
+    positive_distance = ((anchor - positive) ** 2).mean(dim=(1))
+    negative_distance = ((anchor - negative) ** 2).mean(dim=(1))
+
+    
+
+
+    
+
+
     
 
 
 
 if __name__ == "__main__":
-    # import argparse
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('path_train_set', type=Path)
-    # parser.add_argument('path_test_set', type=Path)
-    # args = parser.parse_args()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path_train_set', type=Path)
+    parser.add_argument('path_test_set', type=Path)
+    args = parser.parse_args()
 
+    # Implement execution here
     model = ConvNet()
 
     def count_parameters(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     print(count_parameters(model))
-
-    x = torch.randn(1, 3, 250, 250)
-
-    y = model(x)
-
-    print(y.shape)
-
-
-    # Implement execution here
-    ...
