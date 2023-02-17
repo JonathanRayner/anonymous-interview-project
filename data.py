@@ -45,7 +45,7 @@ def get_persons_with_at_least_k_images(person_paths: dict, k: int) -> list:
 
 class TripletFaceDataset(Dataset):
 
-    def __itar -xvzfnit__(self, path) -> None:
+    def __init__(self, path) -> None:
         super().__init__()
 
         self.person_paths = get_person_image_paths(path)
